@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lecciones — Chess Tutor · PanaMentorLabs</title>
+<meta name="theme-color" content="#1B1512">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1512; --bg-soft:#241C17; --ivory:#F1E9D8; --ivory-dim:#DCD0B8;
+    --ink:#2A211B; --muted:#8A7B6C; --gold:#B8912F; --gold-bright:#D8AE47;
+    --burgundy:#7A2331; --burgundy-bright:#9A3040;
+    --sq-light:#EDE6D6; --sq-dark:#8B6F52; --sq-move:#B8912F55; --sq-capture:#7A233166;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:radial-gradient(ellipse 900px 500px at 50% -10%, #2A2119 0%, transparent 60%), var(--bg);
+    color:var(--ivory); font-family:'Work Sans', sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:20px 16px 60px; -webkit-font-smoothing:antialiased;
+  }
+  .topbar{width:100%; max-width:920px; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .back-link{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); text-decoration:none; letter-spacing:0.05em;}
+  .back-link:hover{color:var(--gold-bright);}
+  .toggles{display:flex; gap:8px;}
+  .toggle-group{display:flex; background:var(--bg-soft); border:1px solid #362B23; border-radius:999px; padding:3px;}
+  .toggle-btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:7px 14px; border-radius:999px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s;}
+  .toggle-btn.active{background:var(--gold); color:#1B1512; font-weight:700;}
+
+  .lesson-nav{width:100%; max-width:920px; display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; margin-bottom:18px; -webkit-overflow-scrolling:touch;}
+  .lesson-dot{
+    flex:0 0 auto; font-family:'Space Mono', monospace; font-size:11px; padding:7px 12px;
+    border-radius:8px; border:1px solid #362B23; background:var(--bg-soft); color:var(--muted);
+    cursor:pointer; white-space:nowrap; transition:border-color .15s, color .15s;
+  }
+  .lesson-dot.current{border-color:var(--gold); color:var(--gold-bright);}
+  .lesson-dot.done::before{content:"✓ "; color:var(--gold);}
+
+  main{width:100%; max-width:920px; display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start;}
+  @media (max-width:760px){ main{grid-template-columns:1fr;} }
+
+  .panel h1{font-family:'Spectral', serif; font-size:clamp(26px,4vw,34px); font-weight:700; margin-bottom:6px;}
+  .panel .piece-glyph{font-size:40px; color:var(--gold-bright); display:block; margin-bottom:6px;}
+  .panel p{color:var(--ivory-dim); line-height:1.6; font-size:15px; margin-bottom:14px;}
+  .hint{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); background:var(--bg-soft); border:1px solid #362B23; border-radius:10px; padding:12px 14px; line-height:1.5;}
+  .hint b{color:var(--gold-bright);}
+
+  .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .btn{
+    font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:10px 18px;
+    border-radius:999px; border:1px solid var(--gold); background:transparent; color:var(--gold-bright);
+    cursor:pointer; text-decoration:none; display:inline-block; transition:background .15s, color .15s;
+  }
+  .btn:hover{background:var(--gold); color:#1B1512;}
+  .btn.primary{background:var(--gold); color:#1B1512;}
+  .btn.primary:hover{background:var(--gold-bright);}
+  .btn:disabled{opacity:0.35; cursor:default; pointer-events:none;}
+
+  .board-wrap{display:flex; flex-direction:column; align-items:center;}
+  .board{
+    width:min(90vw, 380px); height:min(90vw, 380px);
+    display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
+    border-radius:8px; overflow:hidden; border:3px solid var(--bg-soft);
+    box-shadow:0 20px 40px -18px rgba(0,0,0,0.6);
+  }
+  .sq{position:relative; display:flex; align-items:center; justify-content:center; font-size:min(8.5vw, 34px); user-select:none; cursor:default;}
+  .sq.light{background:var(--sq-light);}
+  .sq.dark{background:var(--sq-dark);}
+  .sq.selectable{cursor:pointer;}
+  .sq .coord{position:absolute; bottom:2px; left:3px; font-family:'Space Mono', monospace; font-size:9px; opacity:0.5;}
+  .sq.light .coord{color:#5A4E42;}
+  .sq.dark .coord{color:#EDE6D6;}
+  .dot{position:absolute; width:22%; height:22%; border-radius:50%; background:var(--sq-move); pointer-events:none;}
+  .ring{position:absolute; inset:6%; border-radius:8px; border:3px solid var(--sq-capture); background:var(--sq-capture); pointer-events:none;}
+  .sq.selected{outline:3px solid var(--gold-bright); outline-offset:-3px;}
+  .piece-white{color:#F7F1E3; text-shadow:0 1px 0 #00000055, 0 0 8px rgba(184,145,47,0.35);}
+  .piece-black{color:#241C17; text-shadow:0 1px 0 #ffffff33;}
+  .caption{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); margin-top:12px; text-align:center; min-height:16px;}
+
+  footer{margin-top:44px; font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:0.05em;}
+  [data-lang="en"]{display:none;}
+  .lang-en [data-lang="en"]{display:inline;}
+  .lang-en [data-lang="es"]{display:none;}
+  .kid-only{display:none;}
+  .adult-only{display:inline;}
+  .mode-kid .kid-only{display:inline;}
+  .mode-kid .adult-only{display:none;}
+</style>
+</head>
+<body class="lang-es mode-adult">
+
+<div class="topbar">
+  <a class="back-link" href="index.html">← <span data-lang="es">Launcher</span><span data-lang="en">Launcher</span></a>
+  <div class="toggles">
+    <div class="toggle-group">
+      <button class="toggle-btn" id="btnKid">Niño/Kid</button>
+      <button class="toggle-btn active" id="btnAdult">Adulto/Adult</button>
+    </div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" id="btnEs">ES</button>
+      <button class="toggle-btn" id="btnEn">EN</button>
+    </div>
+  </div>
+</div>
+
+<div class="lesson-nav" id="lessonNav"></div>
+
+<main>
+  <div class="panel">
+    <span class="piece-glyph" id="pieceGlyph">♙</span>
+    <h1 id="lessonTitle"></h1>
+    <p id="lessonText"></p>
+    <div class="hint" id="lessonHint"></div>
+    <div class="actions">
+      <button class="btn" id="btnPrev">← <span data-lang="es">Anterior</span><span data-lang="en">Previous</span></button>
+      <button class="btn primary" id="btnNext"><span data-lang="es">Siguiente</span><span data-lang="en">Next</span> →</button>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+    <div class="caption" id="caption"></div>
+  </div>
+</main>
+
+<footer>
+  PanaMentorLabs · Chess Tutor ·
+  <button id="btnClearCache" style="background:none;border:none;color:inherit;font-family:inherit;font-size:inherit;text-decoration:underline;cursor:pointer;padding:0;">
+    <span data-lang="es">limpiar caché</span><span data-lang="en">clear cache</span>
+  </button>
+</footer>
+
+<script>
+(function(){
+  const body = document.body;
+  const LANG_KEY = 'chesstutor_lang';
+  const MODE_KEY = 'chesstutor_mode';
+  const PROGRESS_KEY = 'chesstutor_lessons_done';
+
+  const FILES = ['a','b','c','d','e','f','g','h'];
+
+  function sqName(row,col){ return FILES[col] + (8-row); }
+  function nameToRC(name){ const col = FILES.indexOf(name[0]); const row = 8 - parseInt(name[1],10); return [row,col]; }
+
+  const GLYPH = {
+    pawn:{white:'♙', black:'♟'}, rook:{white:'♖', black:'♜'}, knight:{white:'♘', black:'♞'},
+    bishop:{white:'♗', black:'♝'}, queen:{white:'♕', black:'♛'}, king:{white:'♔', black:'♚'}
+  };
+
+  // ---- lesson data ----
+  const lessons = [
+    {
+      id:'peon', piece:'pawn', color:'white', start:'e2',
+      board:{ 'd3':{piece:'pawn', color:'black'}, 'f3':{piece:'pawn', color:'black'} },
+      titleEs:'El Peón', titleEn:'The Pawn',
+      textAdultEs:'El peón avanza una casilla, o dos si es su primer movimiento. Nunca retrocede. Captura en diagonal, un paso adelante.',
+      textAdultEn:'The pawn advances one square, or two on its very first move. It never moves backward. It captures diagonally, one step forward.',
+      textKidEs:'El peón es como un soldadito que solo camina hacia adelante. ¡La primera vez puede dar dos pasitos! Para comer una pieza enemiga, lo hace en diagonal.',
+      textKidEn:'The pawn is like a little soldier who only walks forward. The very first time, it can take two steps! To capture an enemy piece, it does it diagonally.',
+      hintEs:'Toca el peón (casilla e2) para ver a dónde puede moverse.',
+      hintEn:'Tap the pawn (square e2) to see where it can move.'
+    },
+    {
+      id:'torre', piece:'rook', color:'white', start:'d4',
+      board:{ 'd7':{piece:'pawn', color:'black'} },
+      titleEs:'La Torre', titleEn:'The Rook',
+      textAdultEs:'La torre se mueve en línea recta: hacia adelante, atrás o a los lados, todas las casillas que quiera, mientras el camino esté libre.',
+      textAdultEn:'The rook moves in a straight line: forward, backward, or sideways, as many squares as it wants, as long as the path is clear.',
+      textKidEs:'La torre camina como si fuera por pasillos rectos: arriba, abajo, izquierda o derecha. ¡Puede recorrer todo el tablero de un solo viaje!',
+      textKidEn:'The rook walks like it\'s going down straight hallways: up, down, left, or right. It can cross the whole board in one trip!',
+      hintEs:'Toca la torre (d4). Fíjate que se detiene al llegar al peón negro: ¡lo puede capturar!',
+      hintEn:'Tap the rook (d4). Notice it stops when it reaches the black pawn — it can capture it!'
+    },
+    {
+      id:'caballo', piece:'knight', color:'white', start:'d4',
+      board:{},
+      titleEs:'El Caballo', titleEn:'The Knight',
+      textAdultEs:'El caballo se mueve en forma de "L": dos casillas en una dirección y luego una perpendicular. Es la única pieza que puede saltar sobre otras.',
+      textAdultEn:'The knight moves in an "L" shape: two squares in one direction, then one square perpendicular. It\'s the only piece that can jump over others.',
+      textKidEs:'El caballo salta como un caballito de verdad: dos pasos para un lado y uno para el otro lado, formando una "L". ¡Y puede saltar por encima de otras piezas!',
+      textKidEn:'The knight hops like a real horse: two steps one way, then one step sideways, making an "L" shape. And it can jump right over other pieces!',
+      hintEs:'Toca el caballo (d4) y observa las ocho casillas en forma de "L" a las que puede saltar.',
+      hintEn:'Tap the knight (d4) and see the eight "L"-shaped squares it can jump to.'
+    },
+    {
+      id:'alfil', piece:'bishop', color:'white', start:'d4',
+      board:{ 'g7':{piece:'pawn', color:'black'} },
+      titleEs:'El Alfil', titleEn:'The Bishop',
+      textAdultEs:'El alfil se mueve en diagonal, todas las casillas que quiera. Cada alfil queda atado de por vida a un solo color de casillas.',
+      textAdultEn:'The bishop moves diagonally, as many squares as it wants. Each bishop stays tied for life to a single square color.',
+      textKidEs:'El alfil solo camina en diagonal, como si caminara torcido a propósito. Un alfil siempre se queda en casillas del mismo color.',
+      textKidEn:'The bishop only walks diagonally, like it\'s walking crooked on purpose. A bishop always stays on squares of the same color.',
+      hintEs:'Toca el alfil (d4) y mira sus cuatro diagonales.',
+      hintEn:'Tap the bishop (d4) and look at its four diagonals.'
+    },
+    {
+      id:'dama', piece:'queen', color:'white', start:'d4',
+      board:{ 'd7':{piece:'pawn', color:'black'}, 'a4':{piece:'pawn', color:'black'} },
+      titleEs:'La Dama', titleEn:'The Queen',
+      textAdultEs:'La dama es la pieza más poderosa: combina los movimientos de la torre y el alfil. Líneas rectas y diagonales, todas las casillas que quiera.',
+      textAdultEn:'The queen is the most powerful piece: she combines the rook\'s and bishop\'s moves. Straight lines and diagonals, as many squares as she wants.',
+      textKidEs:'La dama es la más fuerte de todas. Se mueve como la torre Y como el alfil al mismo tiempo: ¡recto y en diagonal!',
+      textKidEn:'The queen is the strongest of all. She moves like the rook AND like the bishop at the same time: straight and diagonal!',
+      hintEs:'Toca la dama (d4) y compara: es torre + alfil a la vez.',
+      hintEn:'Tap the queen (d4) and compare: she\'s rook + bishop at once.'
+    },
+    {
+      id:'rey', piece:'king', color:'white', start:'e4',
+      board:{ 'd5':{piece:'pawn', color:'black'} },
+      titleEs:'El Rey', titleEn:'The King',
+      textAdultEs:'El rey se mueve una sola casilla en cualquier dirección. Es la pieza más importante: si lo capturan, pierdes la partida. Por eso hay que protegerlo.',
+      textAdultEn:'The king moves just one square in any direction. He\'s the most important piece: if he\'s captured, you lose the game. That\'s why he must be protected.',
+      textKidEs:'El rey camina despacito, solo un paso a la vez, pero puede ir en cualquier dirección. ¡Es el más importante de todos, hay que cuidarlo mucho!',
+      textKidEn:'The king walks slowly, only one step at a time, but he can go in any direction. He\'s the most important one, so we have to protect him a lot!',
+      hintEs:'Toca el rey (e4) y observa sus ocho casillas vecinas.',
+      hintEn:'Tap the king (e4) and see his eight neighboring squares.'
+    },
+    {
+      id:'mate', piece:null, color:null, start:null,
+      mateDemo:true,
+      board:{
+        'h8':{piece:'king', color:'black'},
+        'a8':{piece:'rook', color:'white'},
+        'a7':{piece:'rook', color:'white'}
+      },
+      attackerSquares:['h1','h2','h3','h4','h5','h6','h7','h8','g8','f8','e8','d8','c8','b8'],
+      titleEs:'Jaque y Jaque Mate', titleEn:'Check and Checkmate',
+      textAdultEs:'Cuando el rey está amenazado de captura, está en "jaque". Si no hay forma de evitarlo —moverse, bloquear o capturar al atacante— es "jaque mate" y termina la partida.',
+      textAdultEn:'When the king is threatened with capture, he\'s "in check". If there\'s no way to escape it — move, block, or capture the attacker — it\'s "checkmate" and the game ends.',
+      textKidEs:'Cuando alguien puede comer al rey en el próximo turno, decimos que está en "jaque". Si el rey no tiene ningún escondite, ¡es jaque mate y se acaba el juego!',
+      textKidEn:'When someone could capture the king on the next turn, we say he\'s "in check". If the king has nowhere to hide, it\'s checkmate and the game is over!',
+      hintEs:'Las dos torres blancas cubren toda la octava fila y la columna "h". El rey negro no tiene escapatoria: jaque mate.',
+      hintEn:'The two white rooks cover the entire 8th rank and the h-file. The black king has no escape: checkmate.'
+    }
+  ];
+
+  let current = 0;
+  let selected = null;
+  let position = {}; // live copy for interactive lessons
+
+  function computeMoves(piece, color, from, pos){
+    const [r,c] = nameToRC(from);
+    const moves = [];
+    const dirsSlide = {
+      rook:[[-1,0],[1,0],[0,-1],[0,1]],
+      bishop:[[-1,-1],[-1,1],[1,-1],[1,1]],
+      queen:[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]
+    };
+    function inb(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+
+    if(piece==='pawn'){
+      const dir = color==='white' ? -1 : 1;
+      const startRow = color==='white' ? 6 : 1;
+      const oneR = r+dir;
+      if(inb(oneR,c) && !pos[sqName(oneR,c)]) moves.push({to:sqName(oneR,c), capture:false});
+      if(r===startRow){
+        const twoR = r+2*dir;
+        if(!pos[sqName(oneR,c)] && !pos[sqName(twoR,c)]) moves.push({to:sqName(twoR,c), capture:false});
+      }
+      [c-1,c+1].forEach(cc=>{
+        if(inb(oneR,cc)){
+          const t = pos[sqName(oneR,cc)];
+          if(t && t.color!==color) moves.push({to:sqName(oneR,cc), capture:true});
+        }
+      });
+    } else if(piece==='knight'){
+      const deltas = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+      deltas.forEach(([dr,dc])=>{
+        const rr=r+dr, cc=c+dc;
+        if(inb(rr,cc)){
+          const t = pos[sqName(rr,cc)];
+          if(!t) moves.push({to:sqName(rr,cc), capture:false});
+          else if(t.color!==color) moves.push({to:sqName(rr,cc), capture:true});
+        }
+      });
+    } else if(piece==='king'){
+      const deltas = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      deltas.forEach(([dr,dc])=>{
+        const rr=r+dr, cc=c+dc;
+        if(inb(rr,cc)){
+          const t = pos[sqName(rr,cc)];
+          if(!t) moves.push({to:sqName(rr,cc), capture:false});
+          else if(t.color!==color) moves.push({to:sqName(rr,cc), capture:true});
+        }
+      });
+    } else if(dirsSlide[piece]){
+      dirsSlide[piece].forEach(([dr,dc])=>{
+        let rr=r+dr, cc=c+dc;
+        while(inb(rr,cc)){
+          const t = pos[sqName(rr,cc)];
+          if(!t){ moves.push({to:sqName(rr,cc), capture:false}); }
+          else { if(t.color!==color) moves.push({to:sqName(rr,cc), capture:true}); break; }
+          rr+=dr; cc+=dc;
+        }
+      });
+    }
+    return moves;
+  }
+
+  function lang(){ return body.classList.contains('lang-en') ? 'en' : 'es'; }
+  function mode(){ return body.classList.contains('mode-kid') ? 'kid' : 'adult'; }
+
+  function renderBoard(){
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+    const lesson = lessons[current];
+    let legalTargets = [];
+    if(selected){
+      legalTargets = computeMoves(lesson.piece, lesson.color, selected, position);
+    }
+    for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        const name = sqName(r,c);
+        const sq = document.createElement('div');
+        sq.className = 'sq ' + (((r+c)%2===0) ? 'light':'dark');
+        sq.dataset.sq = name;
+        const p = position[name];
+        if(p){
+          const span = document.createElement('span');
+          span.textContent = GLYPH[p.piece][p.color];
+          span.className = p.color==='white' ? 'piece-white' : 'piece-black';
+          sq.appendChild(span);
+          if(!lesson.mateDemo && name===lesson.start && p.piece===lesson.piece){
+            sq.classList.add('selectable');
+            if(selected===name) sq.classList.add('selected');
+          }
+        }
+        if(lesson.mateDemo && lesson.attackerSquares && lesson.attackerSquares.includes(name) && lesson.showCoverage){
+          const ring = document.createElement('div');
+          ring.className = 'ring';
+          ring.style.opacity = '0.35';
+          sq.appendChild(ring);
+        }
+        const target = legalTargets.find(m=>m.to===name);
+        if(target){
+          const mark = document.createElement('div');
+          mark.className = target.capture ? 'ring' : 'dot';
+          sq.appendChild(mark);
+          sq.classList.add('selectable');
+        }
+        if(c===0){ const co=document.createElement('span'); co.className='coord'; co.textContent=8-r; sq.appendChild(co); }
+        boardEl.appendChild(sq);
+      }
+    }
+  }
+
+  function onBoardClick(e){
+    const sqEl = e.target.closest('.sq');
+    if(!sqEl) return;
+    const name = sqEl.dataset.sq;
+    const lesson = lessons[current];
+    if(lesson.mateDemo){
+      lesson.showCoverage = !lesson.showCoverage;
+      renderBoard();
+      updateCaption();
+      return;
+    }
+    if(name===lesson.start && position[name] && position[name].piece===lesson.piece){
+      selected = (selected===name) ? null : name;
+      renderBoard();
+      return;
+    }
+    if(selected){
+      const moves = computeMoves(lesson.piece, lesson.color, selected, position);
+      const m = moves.find(mv=>mv.to===name);
+      if(m){
+        const piece = position[selected];
+        delete position[selected];
+        position[name] = piece;
+        lesson.start = name;
+        selected = null;
+        markDone(lesson.id);
+        renderBoard();
+      }
+    }
+  }
+
+  function markDone(id){
+    const done = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '[]');
+    if(!done.includes(id)){ done.push(id); localStorage.setItem(PROGRESS_KEY, JSON.stringify(done)); }
+    renderLessonNav();
+  }
+
+  function updateCaption(){
+    const lesson = lessons[current];
+    const cap = document.getElementById('caption');
+    if(lesson.mateDemo){
+      cap.textContent = lesson.showCoverage
+        ? (lang()==='es' ? 'Casillas cubiertas por las torres' : 'Squares covered by the rooks')
+        : (lang()==='es' ? 'Toca el tablero para ver la cobertura' : 'Tap the board to see the coverage');
+    } else {
+      cap.textContent = lang()==='es' ? `Casilla actual: ${lesson.start}` : `Current square: ${lesson.start}`;
+    }
+  }
+
+  function loadLesson(idx){
+    current = Math.max(0, Math.min(lessons.length-1, idx));
+    const lesson = lessons[current];
+    selected = null;
+    position = {};
+    if(!lesson.mateDemo){
+      position[lesson.start] = {piece:lesson.piece, color:lesson.color};
+    }
+    Object.entries(lesson.board || {}).forEach(([sq,p])=>{ position[sq] = p; });
+
+    document.getElementById('pieceGlyph').textContent = lesson.mateDemo ? '♚' : GLYPH[lesson.piece][lesson.color];
+    document.getElementById('lessonTitle').textContent = lang()==='es' ? lesson.titleEs : lesson.titleEn;
+    const md = mode();
+    let text;
+    if(lesson.mateDemo){
+      text = lang()==='es' ? lesson.textAdultEs : lesson.textAdultEn;
+      if(md==='kid') text = lang()==='es' ? lesson.textKidEs : lesson.textKidEn;
+    } else {
+      text = (md==='kid') ? (lang()==='es' ? lesson.textKidEs : lesson.textKidEn) : (lang()==='es' ? lesson.textAdultEs : lesson.textAdultEn);
+    }
+    document.getElementById('lessonText').textContent = text;
+    document.getElementById('lessonHint').innerHTML = '<b>' + (lang()==='es' ? 'Prueba:' : 'Try it:') + '</b> ' + (lang()==='es' ? lesson.hintEs : lesson.hintEn);
+
+    document.getElementById('btnPrev').disabled = current===0;
+    document.getElementById('btnNext').textContent = '';
+    const nextLbl = document.createElement('span');
+    if(current===lessons.length-1){
+      document.getElementById('btnNext').innerHTML = (lang()==='es' ? 'Reiniciar' : 'Restart') + ' ↺';
+    } else {
+      document.getElementById('btnNext').innerHTML = (lang()==='es' ? 'Siguiente' : 'Next') + ' →';
+    }
+
+    renderBoard();
+    updateCaption();
+    renderLessonNav();
+  }
+
+  function renderLessonNav(){
+    const nav = document.getElementById('lessonNav');
+    nav.innerHTML = '';
+    const done = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '[]');
+    lessons.forEach((l, i)=>{
+      const b = document.createElement('button');
+      b.className = 'lesson-dot' + (i===current?' current':'') + (done.includes(l.id)?' done':'');
+      b.textContent = lang()==='es' ? l.titleEs : l.titleEn;
+      b.addEventListener('click', ()=>loadLesson(i));
+      nav.appendChild(b);
+    });
+  }
+
+  document.getElementById('board').addEventListener('click', onBoardClick);
+  document.getElementById('btnPrev').addEventListener('click', ()=>loadLesson(current-1));
+  document.getElementById('btnNext').addEventListener('click', ()=>{
+    if(current===lessons.length-1){ loadLesson(0); } else { loadLesson(current+1); }
+  });
+
+  function applyLang(l){
+    body.classList.remove('lang-es','lang-en'); body.classList.add('lang-'+l);
+    document.getElementById('btnEs').classList.toggle('active', l==='es');
+    document.getElementById('btnEn').classList.toggle('active', l==='en');
+    localStorage.setItem(LANG_KEY, l);
+    loadLesson(current);
+  }
+  function applyMode(m){
+    body.classList.remove('mode-adult','mode-kid'); body.classList.add('mode-'+m);
+    document.getElementById('btnAdult').classList.toggle('active', m==='adult');
+    document.getElementById('btnKid').classList.toggle('active', m==='kid');
+    localStorage.setItem(MODE_KEY, m);
+    loadLesson(current);
+  }
+  document.getElementById('btnEs').addEventListener('click', ()=>applyLang('es'));
+  document.getElementById('btnEn').addEventListener('click', ()=>applyLang('en'));
+  document.getElementById('btnAdult').addEventListener('click', ()=>applyMode('adult'));
+  document.getElementById('btnKid').addEventListener('click', ()=>applyMode('kid'));
+
+  applyLang(localStorage.getItem(LANG_KEY) || 'es');
+  applyMode(localStorage.getItem(MODE_KEY) || 'adult');
+  loadLesson(0);
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+
+  document.getElementById('btnClearCache').addEventListener('click', () => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('CLEAR_CACHE');
+    }
+    caches && caches.keys && caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    location.reload();
+  });
+})();
+</script>
+
+</body>
+</html>

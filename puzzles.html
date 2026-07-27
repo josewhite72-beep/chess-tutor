@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Puzzles — Chess Tutor · PanaMentorLabs</title>
+<meta name="theme-color" content="#1B1512">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+  :root{
+    --bg:#1B1512; --bg-soft:#241C17; --ivory:#F1E9D8; --ivory-dim:#DCD0B8;
+    --ink:#2A211B; --muted:#8A7B6C; --gold:#B8912F; --gold-bright:#D8AE47;
+    --burgundy:#7A2331; --burgundy-bright:#9A3040; --green:#5C7A4A; --green-bright:#7A9A63;
+    --sq-light:#EDE6D6; --sq-dark:#8B6F52; --sq-move:#B8912F55; --sq-capture:#7A233166;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:radial-gradient(ellipse 900px 500px at 50% -10%, #2A2119 0%, transparent 60%), var(--bg);
+    color:var(--ivory); font-family:'Work Sans', sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:20px 16px 60px; -webkit-font-smoothing:antialiased;
+  }
+  .topbar{width:100%; max-width:920px; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .back-link{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); text-decoration:none; letter-spacing:0.05em;}
+  .back-link:hover{color:var(--gold-bright);}
+  .toggles{display:flex; gap:8px;}
+  .toggle-group{display:flex; background:var(--bg-soft); border:1px solid #362B23; border-radius:999px; padding:3px;}
+  .toggle-btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:7px 14px; border-radius:999px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s;}
+  .toggle-btn.active{background:var(--gold); color:#1B1512; font-weight:700;}
+
+  .puzzle-nav{width:100%; max-width:920px; display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; margin-bottom:18px; -webkit-overflow-scrolling:touch;}
+  .puzzle-dot{flex:0 0 auto; font-family:'Space Mono', monospace; font-size:11px; padding:7px 12px; border-radius:8px; border:1px solid #362B23; background:var(--bg-soft); color:var(--muted); cursor:pointer; white-space:nowrap;}
+  .puzzle-dot.current{border-color:var(--gold); color:var(--gold-bright);}
+  .puzzle-dot.done::before{content:"✓ "; color:var(--green-bright);}
+
+  main{width:100%; max-width:920px; display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start;}
+  @media (max-width:760px){ main{grid-template-columns:1fr;} }
+
+  .panel h1{font-family:'Spectral', serif; font-size:clamp(24px,4vw,30px); font-weight:700; margin-bottom:6px;}
+  .tactic-tag{font-family:'Space Mono', monospace; font-size:11px; color:var(--gold-bright); text-transform:uppercase; letter-spacing:0.08em; display:inline-block; margin-bottom:10px;}
+  .panel p{color:var(--ivory-dim); line-height:1.6; font-size:15px; margin-bottom:14px;}
+  .feedback{font-family:'Space Mono', monospace; font-size:13px; border-radius:10px; padding:12px 14px; line-height:1.5; min-height:20px; margin-bottom:14px;}
+  .feedback.idle{background:var(--bg-soft); border:1px solid #362B23; color:var(--muted);}
+  .feedback.good{background:#5C7A4A22; border:1px solid var(--green-bright); color:var(--green-bright);}
+  .feedback.bad{background:#7A233122; border:1px solid var(--burgundy-bright); color:var(--burgundy-bright);}
+
+  .actions{display:flex; gap:10px; margin-top:6px; flex-wrap:wrap;}
+  .btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:10px 18px; border-radius:999px; border:1px solid var(--gold); background:transparent; color:var(--gold-bright); cursor:pointer;}
+  .btn:hover{background:var(--gold); color:#1B1512;}
+  .btn.subtle{border-color:#362B23; color:var(--muted);}
+  .btn.subtle:hover{background:var(--bg-soft); color:var(--ivory-dim);}
+  .btn.primary{background:var(--gold); color:#1B1512;}
+  .btn:disabled{opacity:0.35; cursor:default; pointer-events:none;}
+
+  .board-wrap{display:flex; flex-direction:column; align-items:center;}
+  .board{
+    width:min(90vw, 380px); height:min(90vw, 380px);
+    display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
+    border-radius:8px; overflow:hidden; border:3px solid var(--bg-soft);
+    box-shadow:0 20px 40px -18px rgba(0,0,0,0.6);
+  }
+  .sq{position:relative; display:flex; align-items:center; justify-content:center; font-size:min(8.5vw, 34px); user-select:none;}
+  .sq.light{background:var(--sq-light);} .sq.dark{background:var(--sq-dark);}
+  .sq.own, .sq.target{cursor:pointer;}
+  .sq .coord{position:absolute; bottom:2px; left:3px; font-family:'Space Mono', monospace; font-size:9px; opacity:0.5;}
+  .sq.light .coord{color:#5A4E42;} .sq.dark .coord{color:#EDE6D6;}
+  .dot{position:absolute; width:22%; height:22%; border-radius:50%; background:var(--sq-move); pointer-events:none;}
+  .ring{position:absolute; inset:6%; border-radius:8px; border:3px solid var(--sq-capture); background:var(--sq-capture); pointer-events:none;}
+  .sq.selected{outline:3px solid var(--gold-bright); outline-offset:-3px;}
+  .sq.hint{outline:3px solid var(--green-bright); outline-offset:-3px;}
+  .piece-white{color:#F7F1E3; text-shadow:0 1px 0 #00000055, 0 0 8px rgba(184,145,47,0.35);}
+  .piece-black{color:#241C17; text-shadow:0 1px 0 #ffffff33;}
+
+  footer{margin-top:44px; font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:0.05em;}
+  [data-lang="en"]{display:none;}
+  .lang-en [data-lang="en"]{display:inline;}
+  .lang-en [data-lang="es"]{display:none;}
+</style>
+</head>
+<body class="lang-es mode-adult">
+
+<div class="topbar">
+  <a class="back-link" href="index.html">← <span data-lang="es">Launcher</span><span data-lang="en">Launcher</span></a>
+  <div class="toggles">
+    <div class="toggle-group">
+      <button class="toggle-btn" id="btnKid">Niño/Kid</button>
+      <button class="toggle-btn active" id="btnAdult">Adulto/Adult</button>
+    </div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" id="btnEs">ES</button>
+      <button class="toggle-btn" id="btnEn">EN</button>
+    </div>
+  </div>
+</div>
+
+<div class="puzzle-nav" id="puzzleNav"></div>
+
+<main>
+  <div class="panel">
+    <span class="tactic-tag" id="tacticTag"></span>
+    <h1 id="puzzleTitle"></h1>
+    <p id="puzzleText"></p>
+    <div class="feedback idle" id="feedback"></div>
+    <div class="actions">
+      <button class="btn subtle" id="btnHint"><span data-lang="es">Pista</span><span data-lang="en">Hint</span></button>
+      <button class="btn subtle" id="btnRetry"><span data-lang="es">Reiniciar</span><span data-lang="en">Reset</span></button>
+      <button class="btn primary" id="btnNext" disabled><span data-lang="es">Siguiente puzzle</span><span data-lang="en">Next puzzle</span> →</button>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+</main>
+
+<footer>
+  PanaMentorLabs · Chess Tutor ·
+  <button id="btnClearCache" style="background:none;border:none;color:inherit;font-family:inherit;font-size:inherit;text-decoration:underline;cursor:pointer;padding:0;">
+    <span data-lang="es">limpiar caché</span><span data-lang="en">clear cache</span>
+  </button>
+</footer>
+
+<script>
+(function(){
+  const body = document.body;
+  const LANG_KEY = 'chesstutor_lang';
+  const MODE_KEY = 'chesstutor_mode';
+  const PROGRESS_KEY = 'chesstutor_puzzles_done';
+  const FILES = ['a','b','c','d','e','f','g','h'];
+  const GLYPH = { p:{w:'♙',b:'♟'}, r:{w:'♖',b:'♜'}, n:{w:'♘',b:'♞'}, b:{w:'♗',b:'♝'}, q:{w:'♕',b:'♛'}, k:{w:'♔',b:'♚'} };
+
+  const puzzles = [
+    {
+      id:'mate1', fen:'k7/ppp5/8/8/8/8/8/3R2K1 w - - 0 1',
+      solution:{from:'d1', to:'d8'},
+      tacticEs:'Mate en 1', tacticEn:'Mate in 1',
+      titleEs:'La torre da jaque mate', titleEn:'The rook delivers mate',
+      textAdultEs:'El rey negro está atrapado por sus propios peones. Encuentra el movimiento de torre que da jaque mate en una sola jugada.',
+      textAdultEn:'The black king is trapped by his own pawns. Find the rook move that delivers checkmate in one move.',
+      textKidEs:'El rey negro no tiene a dónde escapar porque sus propios peones le tapan el paso. ¿Qué jugada de la torre gana la partida de una vez?',
+      textKidEn:'The black king has nowhere to run because his own pawns block his escape. Which rook move wins the game right away?',
+      hintEs:'Mueve la torre a la columna "d" hasta el fondo del tablero.',
+      hintEn:'Move the rook down the "d" file to the far edge of the board.',
+      goodEs:'¡Jaque mate! El rey no tenía escapatoria.', goodEn:'Checkmate! The king had no escape.',
+      badEs:'Esa jugada es legal, pero no es jaque mate. Piensa en la columna "d".', badEn:'That move is legal, but it\'s not checkmate. Think about the "d" file.'
+    },
+    {
+      id:'fork', fen:'2q3k1/8/2N5/8/8/8/8/6K1 w - - 0 1',
+      solution:{from:'c6', to:'e7'},
+      tacticEs:'Horquilla', tacticEn:'Fork',
+      titleEs:'El caballo ataca dos piezas a la vez', titleEn:'The knight attacks two pieces at once',
+      textAdultEs:'El caballo puede saltar a una casilla desde la que amenaza al rey y a la dama al mismo tiempo. Encuentra esa casilla.',
+      textAdultEn:'The knight can jump to a square that threatens both the king and the queen at once. Find that square.',
+      textKidEs:'¡El caballo puede saltar a un lugar mágico donde amenaza al rey Y a la dama al mismo tiempo! ¿A qué casilla salta?',
+      textKidEn:'The knight can jump to a magic spot where it threatens the king AND the queen at the same time! Which square is it?',
+      hintEs:'Cuenta la forma de "L" desde c6 hacia el centro del tablero.',
+      hintEn:'Count the "L" shape from c6 toward the center of the board.',
+      goodEs:'¡Horquilla! Ahora ganas la dama en la próxima jugada.', goodEn:'Fork! Now you win the queen next move.',
+      badEs:'Ese salto es legal, pero no amenaza a las dos piezas a la vez. Prueba otra casilla en forma de "L".', badEn:'That jump is legal, but it doesn\'t threaten both pieces at once. Try another "L"-shaped square.'
+    },
+    {
+      id:'hanging', fen:'r3k3/8/8/8/8/8/6B1/6K1 w - - 0 1',
+      solution:{from:'g2', to:'a8'},
+      tacticEs:'Pieza colgada', tacticEn:'Hanging piece',
+      titleEs:'Captura la torre gratis', titleEn:'Capture the free rook',
+      textAdultEs:'La torre negra en a8 no está defendida por nada. Tu alfil tiene el camino libre en diagonal para capturarla.',
+      textAdultEn:'The black rook on a8 isn\'t defended by anything. Your bishop has a clear diagonal to capture it.',
+      textKidEs:'¡La torre negra está solita, nadie la protege! Tu alfil puede caminar en diagonal y comérsela gratis.',
+      textKidEn:'The black rook is all alone, nobody\'s protecting it! Your bishop can walk diagonally and eat it for free.',
+      hintEs:'Sigue la diagonal completa desde g2.',
+      hintEn:'Follow the full diagonal starting from g2.',
+      goodEs:'¡Capturaste la torre sin arriesgar nada!', goodEn:'You captured the rook without risking anything!',
+      badEs:'Esa jugada es legal, pero no captura la pieza gratis. Revisa la diagonal del alfil.', badEn:'That move is legal, but it doesn\'t win the free piece. Check the bishop\'s diagonal.'
+    },
+    {
+      id:'mate2', fen:'7k/Q7/6K1/8/8/8/8/8 w - - 0 1',
+      solution:{from:'a7', to:'g7'},
+      tacticEs:'Mate en 1', tacticEn:'Mate in 1',
+      titleEs:'La dama, protegida por su rey, da mate', titleEn:'The queen, guarded by her king, delivers mate',
+      textAdultEs:'Tu rey en g6 protege la casilla g7, así que el rey negro no podrá capturar tu dama ahí. Encuentra el movimiento que da jaque mate.',
+      textAdultEn:'Your king on g6 protects the g7 square, so the black king can\'t capture your queen there. Find the move that delivers checkmate.',
+      textKidEs:'Tu rey está cuidando la casilla g7, así que si tu dama llega ahí, ¡el rey negro no la puede comer! Encuentra el jaque mate.',
+      textKidEn:'Your king is guarding the g7 square, so if your queen lands there, the black king can\'t eat her! Find the checkmate.',
+      hintEs:'Mueve la dama por la fila 7 hasta quedar junto al rey blanco.',
+      hintEn:'Move the queen along rank 7 until she\'s right next to the white king.',
+      goodEs:'¡Jaque mate! Tu rey defendió a la dama en todo momento.', goodEn:'Checkmate! Your king protected the queen the whole time.',
+      badEs:'Esa jugada es legal, pero no es mate todavía. Piensa en qué casilla protege tu rey.', badEn:'That move is legal, but it\'s not mate yet. Think about which square your king protects.'
+    },
+    {
+      id:'pawnfork', fen:'6k1/8/2n1n3/8/3P4/8/8/6K1 w - - 0 1',
+      solution:{from:'d4', to:'d5'},
+      tacticEs:'Horquilla de peón', tacticEn:'Pawn fork',
+      titleEs:'Un peón puede amenazar dos piezas', titleEn:'A pawn can threaten two pieces',
+      textAdultEs:'Los dos caballos negros están uno junto al otro. Si avanzas tu peón a la casilla correcta, amenazará a los dos al mismo tiempo.',
+      textAdultEn:'The two black knights sit side by side. If you push your pawn to the right square, it will threaten both at once.',
+      textKidEs:'Los dos caballos negros están juntitos. Si caminas tu peón un pasito, ¡amenazará a los dos caballos a la vez!',
+      textKidEn:'The two black knights are standing side by side. If you walk your pawn one step, it will threaten both knights at once!',
+      hintEs:'El peón solo puede avanzar una casilla hacia adelante desde d4.',
+      hintEn:'The pawn can only advance one square forward from d4.',
+      goodEs:'¡Horquilla de peón! Los dos caballos están amenazados.', goodEn:'Pawn fork! Both knights are threatened.',
+      badEs:'Esa jugada es legal, pero no crea la horquilla. Recuerda cómo captura el peón.', badEn:'That move is legal, but it doesn\'t create the fork. Remember how the pawn captures.'
+    }
+  ];
+
+  let current = 0;
+  let game = null;
+  let selected = null;
+  let solved = false;
+  let hintLevel = 0;
+
+  function lang(){ return body.classList.contains('lang-en') ? 'en' : 'es'; }
+  function mode(){ return body.classList.contains('mode-kid') ? 'kid' : 'adult'; }
+  function sqName(row,col){ return FILES[col] + (8-row); }
+
+  function loadPuzzle(idx){
+    current = Math.max(0, Math.min(puzzles.length-1, idx));
+    const p = puzzles[current];
+    game = new Chess(p.fen);
+    selected = null;
+    solved = false;
+    hintLevel = 0;
+
+    document.getElementById('tacticTag').textContent = lang()==='es' ? p.tacticEs : p.tacticEn;
+    document.getElementById('puzzleTitle').textContent = lang()==='es' ? p.titleEs : p.titleEn;
+    const md = mode();
+    document.getElementById('puzzleText').textContent = md==='kid'
+      ? (lang()==='es' ? p.textKidEs : p.textKidEn)
+      : (lang()==='es' ? p.textAdultEs : p.textAdultEn);
+    setFeedback('idle', lang()==='es' ? 'Toca la pieza que crees que resuelve el puzzle.' : 'Tap the piece you think solves the puzzle.');
+    document.getElementById('btnNext').disabled = true;
+
+    render();
+    renderNav();
+  }
+
+  function setFeedback(kind, text){
+    const el = document.getElementById('feedback');
+    el.className = 'feedback ' + kind;
+    el.textContent = text;
+  }
+
+  function render(){
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+    const b = game.board();
+    let legalTargets = [];
+    if(selected && !solved){
+      legalTargets = game.moves({square:selected, verbose:true});
+    }
+    const p = puzzles[current];
+
+    for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        const name = sqName(r,c);
+        const sq = document.createElement('div');
+        sq.className = 'sq ' + (((r+c)%2===0) ? 'light':'dark');
+        sq.dataset.sq = name;
+        if(hintLevel>=1 && name===p.solution.from) sq.classList.add('hint');
+        if(hintLevel>=2 && name===p.solution.to) sq.classList.add('hint');
+
+        const cell = b[r][c];
+        if(cell){
+          const span = document.createElement('span');
+          span.textContent = GLYPH[cell.type][cell.color];
+          span.className = cell.color==='w' ? 'piece-white' : 'piece-black';
+          sq.appendChild(span);
+          if(!solved && cell.color===game.turn()){
+            sq.classList.add('own');
+            if(selected===name) sq.classList.add('selected');
+          }
+        }
+        const target = legalTargets.find(m=>m.to===name);
+        if(target){
+          const mark = document.createElement('div');
+          mark.className = target.flags.indexOf('c')>=0 ? 'ring' : 'dot';
+          sq.appendChild(mark);
+          sq.classList.add('target');
+        }
+        if(c===0){ const co=document.createElement('span'); co.className='coord'; co.textContent=8-r; sq.appendChild(co); }
+        boardEl.appendChild(sq);
+      }
+    }
+  }
+
+  function onBoardClick(e){
+    if(solved) return;
+    const sqEl = e.target.closest('.sq');
+    if(!sqEl) return;
+    const name = sqEl.dataset.sq;
+    const piece = game.get(name);
+    const p = puzzles[current];
+
+    if(selected){
+      const moves = game.moves({square:selected, verbose:true});
+      const legal = moves.find(mv=>mv.to===name);
+      if(legal){
+        if(selected===p.solution.from && name===p.solution.to){
+          game.move({from:selected, to:name, promotion:'q'});
+          selected = null; solved = true;
+          render();
+          markDone(p.id);
+          setFeedback('good', lang()==='es' ? p.goodEs : p.goodEn);
+          document.getElementById('btnNext').disabled = false;
+        } else {
+          selected = null;
+          render();
+          setFeedback('bad', lang()==='es' ? p.badEs : p.badEn);
+        }
+        return;
+      }
+    }
+    if(piece && piece.color===game.turn()){
+      selected = (selected===name) ? null : name;
+      render();
+    } else {
+      selected = null;
+      render();
+    }
+  }
+
+  function markDone(id){
+    const done = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '[]');
+    if(!done.includes(id)){ done.push(id); localStorage.setItem(PROGRESS_KEY, JSON.stringify(done)); }
+    renderNav();
+  }
+
+  function renderNav(){
+    const nav = document.getElementById('puzzleNav');
+    nav.innerHTML = '';
+    const done = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '[]');
+    puzzles.forEach((p,i)=>{
+      const b = document.createElement('button');
+      b.className = 'puzzle-dot' + (i===current?' current':'') + (done.includes(p.id)?' done':'');
+      b.textContent = (lang()==='es' ? p.tacticEs : p.tacticEn) + ' ' + (i+1);
+      b.addEventListener('click', ()=>loadPuzzle(i));
+      nav.appendChild(b);
+    });
+  }
+
+  document.getElementById('board').addEventListener('click', onBoardClick);
+
+  document.getElementById('btnHint').addEventListener('click', ()=>{
+    if(solved) return;
+    hintLevel = Math.min(2, hintLevel+1);
+    render();
+    const p = puzzles[current];
+    setFeedback('idle', hintLevel===1 ? (lang()==='es' ? p.hintEs : p.hintEn) : (lang()==='es' ? `Mueve de ${p.solution.from} a ${p.solution.to}.` : `Move from ${p.solution.from} to ${p.solution.to}.`));
+  });
+
+  document.getElementById('btnRetry').addEventListener('click', ()=>loadPuzzle(current));
+
+  document.getElementById('btnNext').addEventListener('click', ()=>{
+    loadPuzzle(current===puzzles.length-1 ? 0 : current+1);
+  });
+
+  function applyLang(l){
+    body.classList.remove('lang-es','lang-en'); body.classList.add('lang-'+l);
+    document.getElementById('btnEs').classList.toggle('active', l==='es');
+    document.getElementById('btnEn').classList.toggle('active', l==='en');
+    localStorage.setItem(LANG_KEY, l);
+    loadPuzzle(current);
+  }
+  function applyMode(m){
+    body.classList.remove('mode-adult','mode-kid'); body.classList.add('mode-'+m);
+    document.getElementById('btnAdult').classList.toggle('active', m==='adult');
+    document.getElementById('btnKid').classList.toggle('active', m==='kid');
+    localStorage.setItem(MODE_KEY, m);
+    loadPuzzle(current);
+  }
+  document.getElementById('btnEs').addEventListener('click', ()=>applyLang('es'));
+  document.getElementById('btnEn').addEventListener('click', ()=>applyLang('en'));
+  document.getElementById('btnAdult').addEventListener('click', ()=>applyMode('adult'));
+  document.getElementById('btnKid').addEventListener('click', ()=>applyMode('kid'));
+
+  applyLang(localStorage.getItem(LANG_KEY) || 'es');
+  applyMode(localStorage.getItem(MODE_KEY) || 'adult');
+  loadPuzzle(0);
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+  document.getElementById('btnClearCache').addEventListener('click', () => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('CLEAR_CACHE');
+    }
+    caches && caches.keys && caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    location.reload();
+  });
+})();
+</script>
+
+</body>
+</html>

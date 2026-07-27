@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jugar — Chess Tutor · PanaMentorLabs</title>
+<meta name="theme-color" content="#1B1512">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+  :root{
+    --bg:#1B1512; --bg-soft:#241C17; --ivory:#F1E9D8; --ivory-dim:#DCD0B8;
+    --ink:#2A211B; --muted:#8A7B6C; --gold:#B8912F; --gold-bright:#D8AE47;
+    --burgundy:#7A2331; --burgundy-bright:#9A3040; --green:#5C7A4A;
+    --sq-light:#EDE6D6; --sq-dark:#8B6F52; --sq-move:#B8912F55; --sq-capture:#7A233166;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:radial-gradient(ellipse 900px 500px at 50% -10%, #2A2119 0%, transparent 60%), var(--bg);
+    color:var(--ivory); font-family:'Work Sans', sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:20px 16px 60px; -webkit-font-smoothing:antialiased;
+  }
+  .topbar{width:100%; max-width:960px; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .back-link{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); text-decoration:none; letter-spacing:0.05em;}
+  .back-link:hover{color:var(--gold-bright);}
+  .toggles{display:flex; gap:8px; flex-wrap:wrap;}
+  .toggle-group{display:flex; background:var(--bg-soft); border:1px solid #362B23; border-radius:999px; padding:3px;}
+  .toggle-btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:7px 14px; border-radius:999px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s;}
+  .toggle-btn.active{background:var(--gold); color:#1B1512; font-weight:700;}
+  .icon-btn{width:34px; height:34px; border-radius:50%; border:1px solid #362B23; background:var(--bg-soft); color:var(--muted); cursor:pointer; font-size:15px;}
+  .icon-btn:hover{color:var(--gold-bright); border-color:var(--gold);}
+
+  h1.title{font-family:'Spectral', serif; font-size:clamp(26px,4vw,32px); font-weight:700; width:100%; max-width:960px; margin-bottom:16px;}
+
+  main{width:100%; max-width:960px; display:grid; grid-template-columns:1fr 1.15fr; gap:26px; align-items:start;}
+  @media (max-width:820px){ main{grid-template-columns:1fr;} }
+
+  .board-col{display:flex; flex-direction:column; align-items:center;}
+  .board{
+    width:min(92vw, 420px); height:min(92vw, 420px);
+    display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
+    border-radius:8px; overflow:hidden; border:3px solid var(--bg-soft);
+    box-shadow:0 20px 40px -18px rgba(0,0,0,0.6);
+  }
+  .sq{position:relative; display:flex; align-items:center; justify-content:center; font-size:min(9vw, 38px); user-select:none;}
+  .sq.light{background:var(--sq-light);} .sq.dark{background:var(--sq-dark);}
+  .sq.own{cursor:pointer;} .sq.target{cursor:pointer;}
+  .sq .coord{position:absolute; bottom:2px; left:3px; font-family:'Space Mono', monospace; font-size:9px; opacity:0.5;}
+  .sq.light .coord{color:#5A4E42;} .sq.dark .coord{color:#EDE6D6;}
+  .dot{position:absolute; width:22%; height:22%; border-radius:50%; background:var(--sq-move); pointer-events:none;}
+  .ring{position:absolute; inset:6%; border-radius:8px; border:3px solid var(--sq-capture); background:var(--sq-capture); pointer-events:none;}
+  .sq.selected{outline:3px solid var(--gold-bright); outline-offset:-3px;}
+  .sq.lastmove{background-image:linear-gradient(0deg, rgba(184,145,47,0.28), rgba(184,145,47,0.28));}
+  .sq.checksq{outline:3px solid var(--burgundy-bright); outline-offset:-3px;}
+  .piece-white{color:#F7F1E3; text-shadow:0 1px 0 #00000055, 0 0 8px rgba(184,145,47,0.35);}
+  .piece-black{color:#241C17; text-shadow:0 1px 0 #ffffff33;}
+
+  .status-row{display:flex; justify-content:space-between; align-items:center; width:min(92vw, 420px); margin-top:12px;}
+  .status{font-family:'Space Mono', monospace; font-size:12px; color:var(--ivory-dim);}
+  .status b{color:var(--gold-bright);}
+  .captured{font-size:16px; color:var(--muted); letter-spacing:1px;}
+
+  .panel{display:flex; flex-direction:column; gap:16px;}
+  .box{background:var(--bg-soft); border:1px solid #362B23; border-radius:var(--radius); padding:16px 18px;}
+  .box h2{font-family:'Spectral', serif; font-size:16px; margin-bottom:10px; color:var(--gold-bright);}
+
+  .difficulty{display:flex; gap:8px;}
+  .diff-btn{flex:1; font-family:'Space Mono', monospace; font-size:12px; padding:9px 6px; border-radius:8px; border:1px solid #362B23; background:transparent; color:var(--muted); cursor:pointer;}
+  .diff-btn.active{border-color:var(--gold); color:var(--gold-bright); background:#B8912F14;}
+
+  .comments{max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;}
+  .comment{font-size:13.5px; line-height:1.5; color:var(--ivory-dim); border-left:2px solid var(--gold); padding-left:10px;}
+  .comment.thinking{color:var(--muted); border-left-color:var(--muted); font-style:italic;}
+  .comment.system{border-left-color:var(--burgundy-bright);}
+
+  .movelist{font-family:'Space Mono', monospace; font-size:12.5px; color:var(--ivory-dim); max-height:110px; overflow-y:auto; line-height:1.8;}
+
+  .actions{display:flex; gap:10px; flex-wrap:wrap;}
+  .btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:10px 16px; border-radius:999px; border:1px solid var(--gold); background:transparent; color:var(--gold-bright); cursor:pointer;}
+  .btn:hover{background:var(--gold); color:#1B1512;}
+  .btn.subtle{border-color:#362B23; color:var(--muted);}
+  .btn.subtle:hover{background:var(--bg); color:var(--ivory-dim);}
+
+  .modal-backdrop{position:fixed; inset:0; background:#000000aa; display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--ivory); color:var(--ink); border-radius:var(--radius); padding:26px; max-width:420px; width:100%;}
+  .modal h3{font-family:'Spectral', serif; font-size:20px; margin-bottom:10px;}
+  .modal p{font-size:13px; color:#5A4E42; line-height:1.5; margin-bottom:14px;}
+  .modal input{width:100%; padding:10px 12px; border-radius:8px; border:1px solid #cbbfa8; font-family:'Space Mono', monospace; font-size:12px; margin-bottom:12px;}
+  .modal .modal-actions{display:flex; justify-content:flex-end; gap:10px;}
+  .modal .btn{border-color:var(--burgundy);color:var(--burgundy);}
+  .modal .btn:hover{background:var(--burgundy); color:var(--ivory);}
+  .modal .btn.primary{background:var(--burgundy); color:var(--ivory);}
+
+  .banner{display:none; width:min(92vw, 420px); margin-top:12px; text-align:center; font-family:'Spectral', serif; font-size:18px; padding:12px; border-radius:10px; background:var(--gold); color:#1B1512;}
+  .banner.show{display:block;}
+  .banner.lose{background:var(--burgundy); color:var(--ivory);}
+
+  footer{margin-top:44px; font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:0.05em;}
+  [data-lang="en"]{display:none;}
+  .lang-en [data-lang="en"]{display:inline;}
+  .lang-en [data-lang="es"]{display:none;}
+</style>
+</head>
+<body class="lang-es mode-adult">
+
+<div class="topbar">
+  <a class="back-link" href="index.html">← <span data-lang="es">Launcher</span><span data-lang="en">Launcher</span></a>
+  <div class="toggles">
+    <div class="toggle-group">
+      <button class="toggle-btn" id="btnKid">Niño/Kid</button>
+      <button class="toggle-btn active" id="btnAdult">Adulto/Adult</button>
+    </div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" id="btnEs">ES</button>
+      <button class="toggle-btn" id="btnEn">EN</button>
+    </div>
+    <button class="icon-btn" id="btnSettings" title="Settings">⚙</button>
+  </div>
+</div>
+
+<h1 class="title"><span data-lang="es">Jugar contra el motor</span><span data-lang="en">Play against the engine</span></h1>
+
+<main>
+  <div class="board-col">
+    <div class="board" id="board"></div>
+    <div class="status-row">
+      <div class="status" id="turnStatus"></div>
+      <div class="captured" id="capturedTray"></div>
+    </div>
+    <div class="banner" id="banner"></div>
+  </div>
+
+  <div class="panel">
+    <div class="box">
+      <h2><span data-lang="es">Dificultad</span><span data-lang="en">Difficulty</span></h2>
+      <div class="difficulty">
+        <button class="diff-btn" data-diff="easy"><span data-lang="es">Fácil</span><span data-lang="en">Easy</span></button>
+        <button class="diff-btn active" data-diff="medium"><span data-lang="es">Media</span><span data-lang="en">Medium</span></button>
+        <button class="diff-btn" data-diff="hard"><span data-lang="es">Difícil</span><span data-lang="en">Hard</span></button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2><span data-lang="es">Comentarios del tutor</span><span data-lang="en">Tutor comments</span></h2>
+      <div class="comments" id="comments"></div>
+    </div>
+
+    <div class="box">
+      <h2><span data-lang="es">Jugadas</span><span data-lang="en">Moves</span></h2>
+      <div class="movelist" id="movelist">—</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btnNewGame"><span data-lang="es">Nueva partida</span><span data-lang="en">New game</span></button>
+      <button class="btn subtle" id="btnUndo"><span data-lang="es">Deshacer</span><span data-lang="en">Undo</span></button>
+      <button class="btn subtle" id="btnResign"><span data-lang="es">Rendirme</span><span data-lang="en">Resign</span></button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  PanaMentorLabs · Chess Tutor ·
+  <button id="btnClearCache" style="background:none;border:none;color:inherit;font-family:inherit;font-size:inherit;text-decoration:underline;cursor:pointer;padding:0;">
+    <span data-lang="es">limpiar caché</span><span data-lang="en">clear cache</span>
+  </button>
+</footer>
+
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <h3><span data-lang="es">Ajustes del tutor</span><span data-lang="en">Tutor settings</span></h3>
+    <p>
+      <span data-lang="es">Opcional: pega una clave API de Groq para que el tutor comente tus jugadas con IA. Sin clave, el tutor usa comentarios automáticos. La clave se guarda solo en este dispositivo.</span>
+      <span data-lang="en">Optional: paste a Groq API key so the tutor comments your moves with AI. Without a key, the tutor uses automatic comments. The key is stored only on this device.</span>
+    </p>
+    <input type="text" id="apiKeyInput" placeholder="gsk_...">
+    <div class="modal-actions">
+      <button class="btn subtle" id="btnCloseSettings"><span data-lang="es">Cerrar</span><span data-lang="en">Close</span></button>
+      <button class="btn primary" id="btnSaveSettings"><span data-lang="es">Guardar</span><span data-lang="en">Save</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const body = document.body;
+  const LANG_KEY = 'chesstutor_lang';
+  const MODE_KEY = 'chesstutor_mode';
+  const API_KEY = 'chesstutor_groq_key';
+  const FILES = ['a','b','c','d','e','f','g','h'];
+  const VALUES = {p:1,n:3,b:3,r:5,q:9,k:0};
+  const GLYPH = {
+    p:{w:'♙',b:'♟'}, r:{w:'♖',b:'♜'}, n:{w:'♘',b:'♞'},
+    b:{w:'♗',b:'♝'}, q:{w:'♕',b:'♛'}, k:{w:'♔',b:'♚'}
+  };
+
+  const game = new Chess();
+  let selected = null;
+  let lastMove = null;
+  let engine = null;
+  let engineReady = false;
+  let diff = 'medium';
+  const DIFF = {
+    easy:{skill:1, movetime:300},
+    medium:{skill:8, movetime:700},
+    hard:{skill:16, movetime:1400}
+  };
+
+  function lang(){ return body.classList.contains('lang-en') ? 'en' : 'es'; }
+  function mode(){ return body.classList.contains('mode-kid') ? 'kid' : 'adult'; }
+
+  // ---- engine setup ----
+  function initEngine(){
+    try{
+      const src = "importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');";
+      const blob = new Blob([src], {type:'application/javascript'});
+      engine = new Worker(URL.createObjectURL(blob));
+      engine.onmessage = onEngineMessage;
+      engine.onerror = () => addComment(lang()==='es' ? 'No se pudo cargar el motor de ajedrez. Revisa tu conexión.' : 'Could not load the chess engine. Check your connection.', 'system');
+      engine.postMessage('uci');
+    }catch(err){
+      addComment(lang()==='es' ? 'Tu navegador no soporta el motor de ajedrez.' : 'Your browser does not support the chess engine.', 'system');
+    }
+  }
+
+  let pendingBestMove = null;
+  function onEngineMessage(e){
+    const line = e.data;
+    if(typeof line !== 'string') return;
+    if(line === 'uciok'){ engine.postMessage('isready'); }
+    else if(line === 'readyok'){ engineReady = true; engine.postMessage('ucinewgame'); }
+    else if(line.startsWith('bestmove')){
+      const parts = line.split(' ');
+      const mv = parts[1];
+      if(mv && mv !== '(none)') applyEngineMove(mv);
+    }
+  }
+
+  function requestEngineMove(){
+    if(!engineReady){ setTimeout(requestEngineMove, 300); return; }
+    const d = DIFF[diff];
+    engine.postMessage('position fen ' + game.fen());
+    engine.postMessage('setoption name Skill Level value ' + d.skill);
+    engine.postMessage('go movetime ' + d.movetime);
+  }
+
+  function applyEngineMove(uci){
+    const from = uci.slice(0,2), to = uci.slice(2,4), promo = uci.slice(4,5) || undefined;
+    const before = materialBalance();
+    const moveObj = game.move({from, to, promotion: promo || 'q'});
+    if(!moveObj) return;
+    lastMove = {from,to};
+    render();
+    const after = materialBalance();
+    commentOnEngineMove(moveObj, before, after);
+    checkGameOver();
+  }
+
+  function sqName(row,col){ return FILES[col] + (8-row); }
+
+  function materialBalance(){
+    const b = game.board();
+    let white=0, black=0;
+    b.forEach(row=>row.forEach(cell=>{
+      if(!cell) return;
+      if(cell.color==='w') white += VALUES[cell.type];
+      else black += VALUES[cell.type];
+    }));
+    return white - black;
+  }
+
+  // ---- rendering ----
+  function render(){
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+    const b = game.board();
+    let legalTargets = [];
+    if(selected){
+      legalTargets = game.moves({square:selected, verbose:true});
+    }
+    const inCheck = game.in_check();
+    const kingSq = inCheck ? findKing(game.turn()) : null;
+
+    for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        const name = sqName(r,c);
+        const sq = document.createElement('div');
+        sq.className = 'sq ' + (((r+c)%2===0) ? 'light':'dark');
+        sq.dataset.sq = name;
+        if(lastMove && (name===lastMove.from || name===lastMove.to)) sq.classList.add('lastmove');
+        if(kingSq && name===kingSq) sq.classList.add('checksq');
+
+        const cell = b[r][c];
+        if(cell){
+          const span = document.createElement('span');
+          span.textContent = GLYPH[cell.type][cell.color];
+          span.className = cell.color==='w' ? 'piece-white' : 'piece-black';
+          sq.appendChild(span);
+          if(cell.color==='w' && game.turn()==='w'){
+            sq.classList.add('own');
+            if(selected===name) sq.classList.add('selected');
+          }
+        }
+        const target = legalTargets.find(m=>m.to===name);
+        if(target){
+          const mark = document.createElement('div');
+          mark.className = target.flags.indexOf('c')>=0 ? 'ring' : 'dot';
+          sq.appendChild(mark);
+          sq.classList.add('target');
+        }
+        if(c===0){ const co=document.createElement('span'); co.className='coord'; co.textContent=8-r; sq.appendChild(co); }
+        boardEl.appendChild(sq);
+      }
+    }
+    renderCaptured();
+    renderMoveList();
+    renderStatus();
+  }
+
+  function findKing(color){
+    const b = game.board();
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      const cell = b[r][c];
+      if(cell && cell.type==='k' && cell.color===color) return sqName(r,c);
+    }
+    return null;
+  }
+
+  function renderCaptured(){
+    const history = game.history({verbose:true});
+    const capturedByWhite = [], capturedByBlack = [];
+    history.forEach(m=>{
+      if(m.captured){
+        if(m.color==='w') capturedByWhite.push(GLYPH[m.captured]['b']);
+        else capturedByBlack.push(GLYPH[m.captured]['w']);
+      }
+    });
+    document.getElementById('capturedTray').textContent = capturedByWhite.join(' ') + '   ' + capturedByBlack.join(' ');
+  }
+
+  function renderMoveList(){
+    const history = game.history();
+    if(history.length===0){ document.getElementById('movelist').textContent = '—'; return; }
+    let out = '';
+    for(let i=0;i<history.length;i+=2){
+      out += (i/2+1) + '. ' + history[i] + (history[i+1] ? ' ' + history[i+1] : '') + '  ';
+    }
+    document.getElementById('movelist').textContent = out;
+  }
+
+  function renderStatus(){
+    const el = document.getElementById('turnStatus');
+    if(game.game_over()){ el.innerHTML = ''; return; }
+    const turnTxt = game.turn()==='w'
+      ? (lang()==='es' ? 'Tu turno' : 'Your turn')
+      : (lang()==='es' ? 'Pensando…' : 'Thinking…');
+    const checkTxt = game.in_check() ? (' · ' + (lang()==='es' ? '¡Jaque!' : 'Check!')) : '';
+    el.innerHTML = '<b>' + turnTxt + '</b>' + checkTxt;
+  }
+
+  function onBoardClick(e){
+    const sqEl = e.target.closest('.sq');
+    if(!sqEl || game.turn()!=='w' || game.game_over()) return;
+    const name = sqEl.dataset.sq;
+    const piece = game.get(name);
+
+    if(selected){
+      const moves = game.moves({square:selected, verbose:true});
+      const m = moves.find(mv=>mv.to===name);
+      if(m){
+        const before = materialBalance();
+        const moveObj = game.move({from:selected, to:name, promotion:'q'});
+        lastMove = {from:selected, to:name};
+        selected = null;
+        render();
+        const after = materialBalance();
+        commentOnPlayerMove(moveObj, before, after);
+        if(!checkGameOver()){
+          renderStatus();
+          setTimeout(requestEngineMove, 400);
+        }
+        return;
+      }
+    }
+    if(piece && piece.color==='w'){
+      selected = (selected===name) ? null : name;
+      render();
+    } else {
+      selected = null;
+      render();
+    }
+  }
+
+  // ---- commentary ----
+  function addComment(text, cls){
+    const wrap = document.getElementById('comments');
+    const div = document.createElement('div');
+    div.className = 'comment' + (cls ? ' '+cls : '');
+    div.textContent = text;
+    wrap.prepend(div);
+    while(wrap.children.length > 12) wrap.removeChild(wrap.lastChild);
+  }
+
+  function heuristicPlayerComment(moveObj, before, after){
+    const es = lang()==='es';
+    const kid = mode()==='kid';
+    if(moveObj.flags.indexOf('c')>=0){
+      return kid
+        ? (es ? '¡Comiste una pieza! Bien hecho.' : 'You captured a piece! Nice.')
+        : (es ? `Capturaste en ${moveObj.to}. Gana material solo si la pieza no está bien defendida.` : `You captured on ${moveObj.to}. It only nets material if it's not well defended.`);
+    }
+    if(moveObj.san.includes('+')){
+      return kid ? (es ? '¡Diste jaque!' : 'You gave check!') : (es ? 'Jaque — revisa si tu pieza queda segura tras la respuesta.' : 'Check — make sure your piece stays safe after the reply.');
+    }
+    const delta = after - before;
+    if(delta < 0){
+      return kid ? (es ? 'Cuidado, esa pieza podría estar en peligro.' : 'Careful, that piece might be in danger.') : (es ? 'Esa jugada pierde material si no hay compensación. Revisa las capturas posibles del rival.' : 'That move loses material without compensation. Check the opponent\'s possible captures.');
+    }
+    return kid
+      ? (es ? '¡Buena jugada! Sigue así.' : 'Good move! Keep going.')
+      : (es ? 'Jugada sólida. Sigue desarrollando tus piezas.' : 'Solid move. Keep developing your pieces.');
+  }
+
+  function heuristicEngineComment(moveObj, before, after){
+    const es = lang()==='es';
+    const kid = mode()==='kid';
+    const balance = after; // positive = white ahead
+    if(moveObj.flags.indexOf('c')>=0){
+      return kid
+        ? (es ? 'Tu rival comió una pieza tuya.' : 'Your opponent captured one of your pieces.')
+        : (es ? `El motor capturó en ${moveObj.to}.` : `The engine captured on ${moveObj.to}.`);
+    }
+    if(moveObj.san.includes('+')){
+      return kid ? (es ? '¡El rival te dio jaque!' : 'Your opponent gave you check!') : (es ? 'El motor te da jaque. Busca cómo defender al rey.' : 'The engine gives check. Find how to defend your king.');
+    }
+    if(balance >= 3){
+      return kid ? (es ? '¡Vas ganando material!' : 'You\'re ahead on material!') : (es ? 'Llevas ventaja de material.' : 'You have a material advantage.');
+    }
+    if(balance <= -3){
+      return kid ? (es ? 'El rival tiene más piezas, ¡a buscar oportunidades!' : 'Your opponent has more pieces — look for chances!') : (es ? 'Estás en desventaja de material. Busca actividad y tácticas.' : 'You\'re down on material. Look for activity and tactics.');
+    }
+    return kid ? (es ? 'La partida sigue pareja.' : 'The game is still close.') : (es ? 'Material equilibrado. Sigue jugando con cuidado.' : 'Material is balanced. Keep playing carefully.');
+  }
+
+  async function commentOnPlayerMove(moveObj, before, after){
+    const key = localStorage.getItem(API_KEY);
+    if(key){
+      addComment(lang()==='es' ? 'Tutor pensando…' : 'Tutor thinking…', 'thinking');
+      try{
+        const aiText = await aiComment(moveObj.san, game.fen());
+        removeThinking();
+        addComment(aiText);
+        return;
+      }catch(err){ removeThinking(); }
+    }
+    addComment(heuristicPlayerComment(moveObj, before, after));
+  }
+
+  function commentOnEngineMove(moveObj, before, after){
+    addComment(heuristicEngineComment(moveObj, before, after));
+  }
+
+  function removeThinking(){
+    const wrap = document.getElementById('comments');
+    const first = wrap.firstChild;
+    if(first && first.classList && first.classList.contains('thinking')) wrap.removeChild(first);
+  }
+
+  async function aiComment(san, fen){
+    const key = localStorage.getItem(API_KEY);
+    const es = lang()==='es';
+    const kid = mode()==='kid';
+    const styleNote = kid
+      ? (es ? 'Explica en español muy simple, para un niño de primaria, en una sola frase corta y motivadora.' : 'Explain in very simple English, for a primary school kid, one short encouraging sentence.')
+      : (es ? 'Comenta en español, en una sola frase breve y útil para un adulto principiante.' : 'Comment in English, one short useful sentence for an adult beginner.');
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + key },
+      body: JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[
+          {role:'system', content:'Eres un tutor de ajedrez breve y amable. ' + styleNote},
+          {role:'user', content:`Jugada: ${san}. Posición FEN: ${fen}. Comenta esta jugada en una sola frase.`}
+        ],
+        max_tokens:60,
+        temperature:0.6
+      })
+    });
+    const data = await res.json();
+    return data.choices[0].message.content.trim();
+  }
+
+  function checkGameOver(){
+    if(!game.game_over()) return false;
+    const banner = document.getElementById('banner');
+    banner.classList.remove('lose');
+    let text;
+    if(game.in_checkmate()){
+      const winner = game.turn()==='w' ? 'black' : 'white';
+      if(winner==='white'){
+        text = lang()==='es' ? '¡Jaque mate! Ganaste.' : 'Checkmate! You won.';
+      } else {
+        text = lang()==='es' ? 'Jaque mate del rival.' : 'Checkmate by your opponent.';
+        banner.classList.add('lose');
+      }
+    } else if(game.in_stalemate()){
+      text = lang()==='es' ? 'Tablas por ahogado.' : 'Draw by stalemate.';
+    } else if(game.insufficient_material()){
+      text = lang()==='es' ? 'Tablas: material insuficiente.' : 'Draw: insufficient material.';
+    } else {
+      text = lang()==='es' ? 'Partida en tablas.' : 'Draw.';
+    }
+    banner.textContent = text;
+    banner.classList.add('show');
+    return true;
+  }
+
+  // ---- controls ----
+  document.getElementById('board').addEventListener('click', onBoardClick);
+
+  document.querySelectorAll('.diff-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      diff = btn.dataset.diff;
+    });
+  });
+
+  document.getElementById('btnNewGame').addEventListener('click', ()=>{
+    game.reset(); selected=null; lastMove=null;
+    document.getElementById('comments').innerHTML='';
+    document.getElementById('banner').classList.remove('show','lose');
+    if(engineReady) engine.postMessage('ucinewgame');
+    render();
+  });
+
+  document.getElementById('btnUndo').addEventListener('click', ()=>{
+    if(document.getElementById('banner').classList.contains('show')) return;
+    game.undo(); game.undo();
+    selected=null; lastMove=null;
+    render();
+  });
+
+  document.getElementById('btnResign').addEventListener('click', ()=>{
+    const banner = document.getElementById('banner');
+    banner.textContent = lang()==='es' ? 'Te rendiste. ¡Intenta de nuevo!' : 'You resigned. Try again!';
+    banner.classList.add('show','lose');
+  });
+
+  document.getElementById('btnSettings').addEventListener('click', ()=>{
+    document.getElementById('apiKeyInput').value = localStorage.getItem(API_KEY) || '';
+    document.getElementById('settingsModal').classList.add('open');
+  });
+  document.getElementById('btnCloseSettings').addEventListener('click', ()=>{
+    document.getElementById('settingsModal').classList.remove('open');
+  });
+  document.getElementById('btnSaveSettings').addEventListener('click', ()=>{
+    const v = document.getElementById('apiKeyInput').value.trim();
+    if(v) localStorage.setItem(API_KEY, v); else localStorage.removeItem(API_KEY);
+    document.getElementById('settingsModal').classList.remove('open');
+  });
+
+  function applyLang(l){
+    body.classList.remove('lang-es','lang-en'); body.classList.add('lang-'+l);
+    document.getElementById('btnEs').classList.toggle('active', l==='es');
+    document.getElementById('btnEn').classList.toggle('active', l==='en');
+    localStorage.setItem(LANG_KEY, l);
+    render();
+  }
+  function applyMode(m){
+    body.classList.remove('mode-adult','mode-kid'); body.classList.add('mode-'+m);
+    document.getElementById('btnAdult').classList.toggle('active', m==='adult');
+    document.getElementById('btnKid').classList.toggle('active', m==='kid');
+    localStorage.setItem(MODE_KEY, m);
+  }
+  document.getElementById('btnEs').addEventListener('click', ()=>applyLang('es'));
+  document.getElementById('btnEn').addEventListener('click', ()=>applyLang('en'));
+  document.getElementById('btnAdult').addEventListener('click', ()=>applyMode('adult'));
+  document.getElementById('btnKid').addEventListener('click', ()=>applyMode('kid'));
+
+  applyLang(localStorage.getItem(LANG_KEY) || 'es');
+  applyMode(localStorage.getItem(MODE_KEY) || 'adult');
+  render();
+  initEngine();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+  document.getElementById('btnClearCache').addEventListener('click', () => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('CLEAR_CACHE');
+    }
+    caches && caches.keys && caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    location.reload();
+  });
+})();
+</script>
+
+</body>
+</html>
