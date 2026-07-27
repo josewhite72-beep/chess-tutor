@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lecciones — Chess Tutor · PanaMentorLabs</title>
-<meta name="theme-color" content="#1B1512">
+<meta name="theme-color" content="#171A3D">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png" sizes="192x192">
@@ -12,15 +12,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#1B1512; --bg-soft:#241C17; --ivory:#F1E9D8; --ivory-dim:#DCD0B8;
-    --ink:#2A211B; --muted:#8A7B6C; --gold:#B8912F; --gold-bright:#D8AE47;
+    --bg:#171A3D; --bg-soft:#242A5C; --ivory:#F1E9D8; --ivory-dim:#DCD0B8;
+    --ink:#241E42; --muted:#9089B8; --gold:#B8912F; --gold-bright:#D8AE47;
     --burgundy:#7A2331; --burgundy-bright:#9A3040;
     --sq-light:#EDE6D6; --sq-dark:#8B6F52; --sq-move:#B8912F55; --sq-capture:#7A233166;
     --radius:14px;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
-    background:radial-gradient(ellipse 900px 500px at 50% -10%, #2A2119 0%, transparent 60%), var(--bg);
+    background:radial-gradient(ellipse 1100px 700px at 75% 15%, #6E4FB355 0%, transparent 60%), linear-gradient(135deg, #14183A 0%, #241E52 45%, #3B2168 100%);
     color:var(--ivory); font-family:'Work Sans', sans-serif;
     min-height:100vh; display:flex; flex-direction:column; align-items:center;
     padding:20px 16px 60px; -webkit-font-smoothing:antialiased;
@@ -29,14 +29,31 @@
   .back-link{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); text-decoration:none; letter-spacing:0.05em;}
   .back-link:hover{color:var(--gold-bright);}
   .toggles{display:flex; gap:8px;}
-  .toggle-group{display:flex; background:var(--bg-soft); border:1px solid #362B23; border-radius:999px; padding:3px;}
+  .toggle-group{display:flex; background:var(--bg-soft); border:1px solid #39407A; border-radius:999px; padding:3px;}
   .toggle-btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:7px 14px; border-radius:999px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s;}
   .toggle-btn.active{background:var(--gold); color:#1B1512; font-weight:700;}
 
+  .ref-strip{width:100%; max-width:920px; margin-bottom:16px;}
+  .ref-strip .ref-label{font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px; display:block;}
+  .ref-icons{display:flex; gap:10px; flex-wrap:wrap;}
+  .ref-icon{
+    width:46px; height:46px; border-radius:50%; border:1px solid rgba(255,255,255,0.14);
+    background:var(--bg-soft); color:var(--ivory); font-size:24px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:border-color .15s, transform .15s;
+  }
+  .ref-icon:hover{border-color:var(--gold); transform:translateY(-2px);}
+  .modal-backdrop{position:fixed; inset:0; background:#0B0D22cc; display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--ivory); color:var(--ink); border-radius:var(--radius); padding:26px; max-width:380px; width:100%; text-align:center;}
+  .modal .modal-glyph{font-size:52px; color:#B07E22; display:block; margin-bottom:8px;}
+  .modal h3{font-family:'Spectral', serif; font-size:22px; margin-bottom:10px;}
+  .modal p{font-size:14px; color:#5A4E42; line-height:1.6; margin-bottom:18px;}
+  .modal .btn{border-color:var(--burgundy); color:var(--burgundy); background:transparent; font-family:'Space Mono', monospace; font-size:12px; padding:9px 20px; border-radius:999px; cursor:pointer; border-width:1px; border-style:solid;}
+  .modal .btn:hover{background:var(--burgundy); color:var(--ivory);}
   .lesson-nav{width:100%; max-width:920px; display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; margin-bottom:18px; -webkit-overflow-scrolling:touch;}
   .lesson-dot{
     flex:0 0 auto; font-family:'Space Mono', monospace; font-size:11px; padding:7px 12px;
-    border-radius:8px; border:1px solid #362B23; background:var(--bg-soft); color:var(--muted);
+    border-radius:8px; border:1px solid #39407A; background:var(--bg-soft); color:var(--muted);
     cursor:pointer; white-space:nowrap; transition:border-color .15s, color .15s;
   }
   .lesson-dot.current{border-color:var(--gold); color:var(--gold-bright);}
@@ -48,7 +65,7 @@
   .panel h1{font-family:'Spectral', serif; font-size:clamp(26px,4vw,34px); font-weight:700; margin-bottom:6px;}
   .panel .piece-glyph{font-size:40px; color:var(--gold-bright); display:block; margin-bottom:6px;}
   .panel p{color:var(--ivory-dim); line-height:1.6; font-size:15px; margin-bottom:14px;}
-  .hint{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); background:var(--bg-soft); border:1px solid #362B23; border-radius:10px; padding:12px 14px; line-height:1.5;}
+  .hint{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); background:var(--bg-soft); border:1px solid #39407A; border-radius:10px; padding:12px 14px; line-height:1.5;}
   .hint b{color:var(--gold-bright);}
 
   .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
@@ -74,6 +91,7 @@
   .sq.dark{background:var(--sq-dark);}
   .sq.selectable{cursor:pointer;}
   .sq .coord{position:absolute; bottom:2px; left:3px; font-family:'Space Mono', monospace; font-size:9px; opacity:0.5;}
+  .sq .coord-file{bottom:auto; left:auto; top:2px; right:3px;}
   .sq.light .coord{color:#5A4E42;}
   .sq.dark .coord{color:#EDE6D6;}
   .dot{position:absolute; width:22%; height:22%; border-radius:50%; background:var(--sq-move); pointer-events:none;}
@@ -106,6 +124,20 @@
       <button class="toggle-btn active" id="btnEs">ES</button>
       <button class="toggle-btn" id="btnEn">EN</button>
     </div>
+  </div>
+</div>
+
+<div class="ref-strip">
+  <span class="ref-label"><span data-lang="es">Referencia rápida — toca una pieza</span><span data-lang="en">Quick reference — tap a piece</span></span>
+  <div class="ref-icons" id="refIcons"></div>
+</div>
+
+<div class="modal-backdrop" id="refModal">
+  <div class="modal">
+    <span class="modal-glyph" id="refModalGlyph"></span>
+    <h3 id="refModalTitle"></h3>
+    <p id="refModalText"></p>
+    <button class="btn" id="refModalClose"><span data-lang="es">Cerrar</span><span data-lang="en">Close</span></button>
   </div>
 </div>
 
@@ -345,6 +377,7 @@
           sq.classList.add('selectable');
         }
         if(c===0){ const co=document.createElement('span'); co.className='coord'; co.textContent=8-r; sq.appendChild(co); }
+        if(r===7){ const cf=document.createElement('span'); cf.className='coord coord-file'; cf.textContent=FILES[c]; sq.appendChild(cf); }
         boardEl.appendChild(sq);
       }
     }
@@ -455,6 +488,30 @@
     if(current===lessons.length-1){ loadLesson(0); } else { loadLesson(current+1); }
   });
 
+  function renderRefIcons(){
+    const wrap = document.getElementById('refIcons');
+    wrap.innerHTML = '';
+    lessons.slice(0,6).forEach(l=>{
+      const b = document.createElement('button');
+      b.className = 'ref-icon';
+      b.textContent = GLYPH[l.piece][l.color];
+      b.type = 'button';
+      b.addEventListener('click', ()=>openRefModal(l));
+      wrap.appendChild(b);
+    });
+  }
+  function openRefModal(l){
+    document.getElementById('refModalGlyph').textContent = GLYPH[l.piece][l.color];
+    document.getElementById('refModalTitle').textContent = lang()==='es' ? l.titleEs : l.titleEn;
+    const md = mode();
+    const text = md==='kid' ? (lang()==='es' ? l.textKidEs : l.textKidEn) : (lang()==='es' ? l.textAdultEs : l.textAdultEn);
+    document.getElementById('refModalText').textContent = text;
+    document.getElementById('refModal').classList.add('open');
+  }
+  document.getElementById('refModalClose').addEventListener('click', ()=>{
+    document.getElementById('refModal').classList.remove('open');
+  });
+
   function applyLang(l){
     body.classList.remove('lang-es','lang-en'); body.classList.add('lang-'+l);
     document.getElementById('btnEs').classList.toggle('active', l==='es');
@@ -477,6 +534,7 @@
   applyLang(localStorage.getItem(LANG_KEY) || 'es');
   applyMode(localStorage.getItem(MODE_KEY) || 'adult');
   loadLesson(0);
+  renderRefIcons();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(()=>{});

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chess Tutor — PanaMentorLabs</title>
-<meta name="theme-color" content="#1B1512">
+<meta name="theme-color" content="#171A3D">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png" sizes="192x192">
@@ -12,12 +12,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#1B1512;
-    --bg-soft:#241C17;
+    --bg:#171A3D;
+    --bg-soft:#242A5C;
     --ivory:#F1E9D8;
     --ivory-dim:#DCD0B8;
-    --ink:#2A211B;
-    --muted:#8A7B6C;
+    --ink:#241E42;
+    --muted:#9089B8;
     --gold:#B8912F;
     --gold-bright:#D8AE47;
     --burgundy:#7A2331;
@@ -28,8 +28,8 @@
   html,body{height:100%;}
   body{
     background:
-      radial-gradient(ellipse 900px 500px at 50% -10%, #2A2119 0%, transparent 60%),
-      var(--bg);
+      radial-gradient(ellipse 1100px 700px at 75% 15%, #6E4FB355 0%, transparent 60%),
+      linear-gradient(135deg, #14183A 0%, #241E52 45%, #3B2168 100%);
     color:var(--ivory);
     font-family:'Work Sans', sans-serif;
     min-height:100vh;
@@ -59,7 +59,7 @@
   .toggle-group{
     display:flex;
     background:var(--bg-soft);
-    border:1px solid #362B23;
+    border:1px solid #39407A;
     border-radius:999px;
     padding:3px;
   }
@@ -140,8 +140,7 @@
     .cards{grid-template-columns:1fr;}
   }
   .card{
-    background:var(--ivory);
-    color:var(--ink);
+    color:#F7F2E7;
     border-radius:var(--radius);
     padding:26px 22px;
     text-align:left;
@@ -151,19 +150,23 @@
     gap:10px;
     position:relative;
     overflow:hidden;
-    border:1px solid #00000010;
+    border:1px solid rgba(255,255,255,0.14);
     transition:transform .18s ease, box-shadow .18s ease;
+    box-shadow:0 10px 26px -14px rgba(0,0,0,0.5);
   }
+  .card-lessons{ background:linear-gradient(155deg, #DDAA45 0%, #B07E22 100%); }
+  .card-play{ background:linear-gradient(155deg, #35A897 0%, #1F7A6C 100%); }
+  .card-puzzles{ background:linear-gradient(155deg, #C452A0 0%, #8E3178 100%); }
   .card:hover, .card:focus-visible{
     transform:translateY(-4px);
-    box-shadow:0 14px 30px -12px rgba(0,0,0,0.5);
-    outline:2px solid var(--gold);
+    box-shadow:0 16px 34px -14px rgba(0,0,0,0.6);
+    outline:2px solid rgba(255,255,255,0.55);
     outline-offset:2px;
   }
   .card .rank{
     font-family:'Space Mono', monospace;
     font-size:12px;
-    color:var(--burgundy);
+    color:rgba(255,255,255,0.8);
     letter-spacing:0.08em;
   }
   .card h2{
@@ -173,7 +176,7 @@
   }
   .card p{
     font-size:14px;
-    color:#5A4E42;
+    color:rgba(255,255,255,0.88);
     line-height:1.5;
   }
   .card .piece-mark{
@@ -181,7 +184,8 @@
     right:-6px;
     bottom:-14px;
     font-size:86px;
-    opacity:0.08;
+    opacity:0.16;
+    color:#fff;
     line-height:1;
     user-select:none;
   }
@@ -193,7 +197,7 @@
   .card .soon{
     font-family:'Space Mono', monospace;
     font-size:11px;
-    color:var(--burgundy);
+    color:rgba(255,255,255,0.85);
     text-transform:uppercase;
     letter-spacing:0.06em;
   }
@@ -246,7 +250,7 @@
 </div>
 
 <div class="cards">
-  <a class="card" href="lecciones.html">
+  <a class="card card-lessons" href="lecciones.html">
     <span class="rank">1 · <span data-lang="es">EMPIEZA AQUÍ</span><span data-lang="en">START HERE</span></span>
     <h2><span data-lang="es">Lecciones</span><span data-lang="en">Lessons</span></h2>
     <p>
@@ -256,7 +260,7 @@
     <span class="piece-mark">♟</span>
   </a>
 
-  <a class="card" href="jugar.html">
+  <a class="card card-play" href="jugar.html">
     <span class="rank">2</span>
     <h2><span data-lang="es">Jugar</span><span data-lang="en">Play</span></h2>
     <p>
@@ -266,7 +270,7 @@
     <span class="piece-mark">♜</span>
   </a>
 
-  <a class="card" href="puzzles.html">
+  <a class="card card-puzzles" href="puzzles.html">
     <span class="rank">3</span>
     <h2><span data-lang="es">Puzzles</span><span data-lang="en">Puzzles</span></h2>
     <p>

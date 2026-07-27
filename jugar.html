@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Jugar — Chess Tutor · PanaMentorLabs</title>
-<meta name="theme-color" content="#1B1512">
+<meta name="theme-color" content="#171A3D">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png" sizes="192x192">
@@ -13,15 +13,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <style>
   :root{
-    --bg:#1B1512; --bg-soft:#241C17; --ivory:#F1E9D8; --ivory-dim:#DCD0B8;
-    --ink:#2A211B; --muted:#8A7B6C; --gold:#B8912F; --gold-bright:#D8AE47;
+    --bg:#171A3D; --bg-soft:#242A5C; --ivory:#F1E9D8; --ivory-dim:#DCD0B8;
+    --ink:#241E42; --muted:#9089B8; --gold:#B8912F; --gold-bright:#D8AE47;
     --burgundy:#7A2331; --burgundy-bright:#9A3040; --green:#5C7A4A;
     --sq-light:#EDE6D6; --sq-dark:#8B6F52; --sq-move:#B8912F55; --sq-capture:#7A233166;
     --radius:14px;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
-    background:radial-gradient(ellipse 900px 500px at 50% -10%, #2A2119 0%, transparent 60%), var(--bg);
+    background:radial-gradient(ellipse 1100px 700px at 75% 15%, #6E4FB355 0%, transparent 60%), linear-gradient(135deg, #14183A 0%, #241E52 45%, #3B2168 100%);
     color:var(--ivory); font-family:'Work Sans', sans-serif;
     min-height:100vh; display:flex; flex-direction:column; align-items:center;
     padding:20px 16px 60px; -webkit-font-smoothing:antialiased;
@@ -30,10 +30,10 @@
   .back-link{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted); text-decoration:none; letter-spacing:0.05em;}
   .back-link:hover{color:var(--gold-bright);}
   .toggles{display:flex; gap:8px; flex-wrap:wrap;}
-  .toggle-group{display:flex; background:var(--bg-soft); border:1px solid #362B23; border-radius:999px; padding:3px;}
+  .toggle-group{display:flex; background:var(--bg-soft); border:1px solid #39407A; border-radius:999px; padding:3px;}
   .toggle-btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:7px 14px; border-radius:999px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s;}
   .toggle-btn.active{background:var(--gold); color:#1B1512; font-weight:700;}
-  .icon-btn{width:34px; height:34px; border-radius:50%; border:1px solid #362B23; background:var(--bg-soft); color:var(--muted); cursor:pointer; font-size:15px;}
+  .icon-btn{width:34px; height:34px; border-radius:50%; border:1px solid #39407A; background:var(--bg-soft); color:var(--muted); cursor:pointer; font-size:15px;}
   .icon-btn:hover{color:var(--gold-bright); border-color:var(--gold);}
 
   h1.title{font-family:'Spectral', serif; font-size:clamp(26px,4vw,32px); font-weight:700; width:100%; max-width:960px; margin-bottom:16px;}
@@ -52,6 +52,7 @@
   .sq.light{background:var(--sq-light);} .sq.dark{background:var(--sq-dark);}
   .sq.own{cursor:pointer;} .sq.target{cursor:pointer;}
   .sq .coord{position:absolute; bottom:2px; left:3px; font-family:'Space Mono', monospace; font-size:9px; opacity:0.5;}
+  .sq .coord-file{bottom:auto; left:auto; top:2px; right:3px;}
   .sq.light .coord{color:#5A4E42;} .sq.dark .coord{color:#EDE6D6;}
   .dot{position:absolute; width:22%; height:22%; border-radius:50%; background:var(--sq-move); pointer-events:none;}
   .ring{position:absolute; inset:6%; border-radius:8px; border:3px solid var(--sq-capture); background:var(--sq-capture); pointer-events:none;}
@@ -67,11 +68,11 @@
   .captured{font-size:16px; color:var(--muted); letter-spacing:1px;}
 
   .panel{display:flex; flex-direction:column; gap:16px;}
-  .box{background:var(--bg-soft); border:1px solid #362B23; border-radius:var(--radius); padding:16px 18px;}
+  .box{background:var(--bg-soft); border:1px solid #39407A; border-radius:var(--radius); padding:16px 18px;}
   .box h2{font-family:'Spectral', serif; font-size:16px; margin-bottom:10px; color:var(--gold-bright);}
 
   .difficulty{display:flex; gap:8px;}
-  .diff-btn{flex:1; font-family:'Space Mono', monospace; font-size:12px; padding:9px 6px; border-radius:8px; border:1px solid #362B23; background:transparent; color:var(--muted); cursor:pointer;}
+  .diff-btn{flex:1; font-family:'Space Mono', monospace; font-size:12px; padding:9px 6px; border-radius:8px; border:1px solid #39407A; background:transparent; color:var(--muted); cursor:pointer;}
   .diff-btn.active{border-color:var(--gold); color:var(--gold-bright); background:#B8912F14;}
 
   .comments{max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;}
@@ -84,9 +85,19 @@
   .actions{display:flex; gap:10px; flex-wrap:wrap;}
   .btn{font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.05em; padding:10px 16px; border-radius:999px; border:1px solid var(--gold); background:transparent; color:var(--gold-bright); cursor:pointer;}
   .btn:hover{background:var(--gold); color:#1B1512;}
-  .btn.subtle{border-color:#362B23; color:var(--muted);}
+  .btn.subtle{border-color:#39407A; color:var(--muted);}
   .btn.subtle:hover{background:var(--bg); color:var(--ivory-dim);}
 
+  .ref-strip{width:100%; max-width:960px; margin-bottom:16px;}
+  .ref-strip .ref-label{font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px; display:block;}
+  .ref-icons{display:flex; gap:10px; flex-wrap:wrap;}
+  .ref-icon{
+    width:42px; height:42px; border-radius:50%; border:1px solid rgba(255,255,255,0.14);
+    background:var(--bg-soft); color:var(--ivory); font-size:22px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:border-color .15s, transform .15s;
+  }
+  .ref-icon:hover{border-color:var(--gold); transform:translateY(-2px);}
+  .modal .modal-glyph{font-size:52px; color:#B07E22; display:block; margin-bottom:8px; text-align:center;}
   .modal-backdrop{position:fixed; inset:0; background:#000000aa; display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
   .modal-backdrop.open{display:flex;}
   .modal{background:var(--ivory); color:var(--ink); border-radius:var(--radius); padding:26px; max-width:420px; width:100%;}
@@ -126,6 +137,22 @@
 </div>
 
 <h1 class="title"><span data-lang="es">Jugar contra el motor</span><span data-lang="en">Play against the engine</span></h1>
+
+<div class="ref-strip">
+  <span class="ref-label"><span data-lang="es">Referencia rápida — toca una pieza</span><span data-lang="en">Quick reference — tap a piece</span></span>
+  <div class="ref-icons" id="refIcons"></div>
+</div>
+
+<div class="modal-backdrop" id="refModal">
+  <div class="modal">
+    <span class="modal-glyph" id="refModalGlyph"></span>
+    <h3 id="refModalTitle" style="font-family:'Spectral', serif; font-size:20px; margin-bottom:10px; text-align:center;"></h3>
+    <p id="refModalText" style="font-size:14px; color:#5A4E42; line-height:1.6; margin-bottom:16px; text-align:center;"></p>
+    <div class="modal-actions" style="display:flex; justify-content:center;">
+      <button class="btn subtle" id="refModalClose"><span data-lang="es">Cerrar</span><span data-lang="en">Close</span></button>
+    </div>
+  </div>
+</div>
 
 <main>
   <div class="board-col">
@@ -315,6 +342,7 @@
           sq.classList.add('target');
         }
         if(c===0){ const co=document.createElement('span'); co.className='coord'; co.textContent=8-r; sq.appendChild(co); }
+        if(r===7){ const cf=document.createElement('span'); cf.className='coord coord-file'; cf.textContent=FILES[c]; sq.appendChild(cf); }
         boardEl.appendChild(sq);
       }
     }
@@ -566,6 +594,65 @@
     document.getElementById('settingsModal').classList.remove('open');
   });
 
+  const PIECE_INFO = {
+    p:{ titleEs:'El Peón', titleEn:'The Pawn',
+        adultEs:'Avanza una casilla (o dos en su primer movimiento). Nunca retrocede. Captura en diagonal, un paso adelante.',
+        adultEn:'Advances one square (or two on its first move). Never moves backward. Captures diagonally, one step forward.',
+        kidEs:'Camina hacia adelante, ¡y la primera vez puede dar dos pasitos! Come en diagonal.',
+        kidEn:'Walks forward, and the very first time it can take two steps! It captures diagonally.' },
+    r:{ titleEs:'La Torre', titleEn:'The Rook',
+        adultEs:'Se mueve en línea recta —adelante, atrás o a los lados— todas las casillas que quiera, si el camino está libre.',
+        adultEn:'Moves in a straight line —forward, backward, or sideways— as many squares as it wants, if the path is clear.',
+        kidEs:'Camina por pasillos rectos: arriba, abajo, izquierda o derecha, ¡todo lo que quiera!',
+        kidEn:'Walks down straight hallways: up, down, left, or right, as far as it wants!' },
+    n:{ titleEs:'El Caballo', titleEn:'The Knight',
+        adultEs:'Se mueve en forma de "L": dos casillas en una dirección y una perpendicular. Es la única pieza que salta sobre otras.',
+        adultEn:'Moves in an "L" shape: two squares one way, then one perpendicular. It\'s the only piece that jumps over others.',
+        kidEs:'Salta como un caballito de verdad, en forma de "L", ¡y puede saltar por encima de otras piezas!',
+        kidEn:'Hops like a real horse, in an "L" shape, and can jump right over other pieces!' },
+    b:{ titleEs:'El Alfil', titleEn:'The Bishop',
+        adultEs:'Se mueve en diagonal, todas las casillas que quiera. Cada alfil queda atado a un solo color de casillas.',
+        adultEn:'Moves diagonally, as many squares as it wants. Each bishop stays tied to a single square color.',
+        kidEs:'Solo camina en diagonal, como caminando torcido a propósito.',
+        kidEn:'Only walks diagonally, like walking crooked on purpose.' },
+    q:{ titleEs:'La Dama', titleEn:'The Queen',
+        adultEs:'La pieza más poderosa: combina los movimientos de la torre y el alfil, en línea recta y en diagonal.',
+        adultEn:'The most powerful piece: combines the rook\'s and bishop\'s moves, straight and diagonal.',
+        kidEs:'¡Es la más fuerte! Se mueve como la torre Y como el alfil al mismo tiempo.',
+        kidEn:'The strongest one! Moves like the rook AND the bishop at the same time.' },
+    k:{ titleEs:'El Rey', titleEn:'The King',
+        adultEs:'Se mueve una sola casilla en cualquier dirección. Si lo capturan, pierdes la partida — hay que protegerlo.',
+        adultEn:'Moves just one square in any direction. If captured, you lose the game — he must be protected.',
+        kidEs:'Camina despacito, un paso a la vez, ¡pero es el más importante de todos!',
+        kidEn:'Walks slowly, one step at a time, but he\'s the most important one of all!' }
+  };
+  const REF_ORDER = ['p','r','n','b','q','k'];
+
+  function renderRefIcons(){
+    const wrap = document.getElementById('refIcons');
+    wrap.innerHTML = '';
+    REF_ORDER.forEach(type=>{
+      const btn = document.createElement('button');
+      btn.className = 'ref-icon';
+      btn.type = 'button';
+      btn.textContent = GLYPH[type].w;
+      btn.addEventListener('click', ()=>openRefModal(type));
+      wrap.appendChild(btn);
+    });
+  }
+  function openRefModal(type){
+    const info = PIECE_INFO[type];
+    document.getElementById('refModalGlyph').textContent = GLYPH[type].w;
+    document.getElementById('refModalTitle').textContent = lang()==='es' ? info.titleEs : info.titleEn;
+    const md = mode();
+    const text = md==='kid' ? (lang()==='es' ? info.kidEs : info.kidEn) : (lang()==='es' ? info.adultEs : info.adultEn);
+    document.getElementById('refModalText').textContent = text;
+    document.getElementById('refModal').classList.add('open');
+  }
+  document.getElementById('refModalClose').addEventListener('click', ()=>{
+    document.getElementById('refModal').classList.remove('open');
+  });
+
   function applyLang(l){
     body.classList.remove('lang-es','lang-en'); body.classList.add('lang-'+l);
     document.getElementById('btnEs').classList.toggle('active', l==='es');
@@ -587,6 +674,7 @@
   applyLang(localStorage.getItem(LANG_KEY) || 'es');
   applyMode(localStorage.getItem(MODE_KEY) || 'adult');
   render();
+  renderRefIcons();
   initEngine();
 
   if ('serviceWorker' in navigator) {
