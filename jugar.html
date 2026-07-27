@@ -132,7 +132,7 @@
       <button class="toggle-btn active" id="btnEs">ES</button>
       <button class="toggle-btn" id="btnEn">EN</button>
     </div>
-    <button class="icon-btn" id="btnSettings" title="Settings">⚙</button>
+    <button class="btn subtle" id="btnSettings" style="border-radius:999px;">⚙ <span data-lang="es">Clave API</span><span data-lang="en">API key</span></button>
   </div>
 </div>
 
@@ -177,6 +177,9 @@
     <div class="box">
       <h2><span data-lang="es">Comentarios del tutor</span><span data-lang="en">Tutor comments</span></h2>
       <div class="comments" id="comments"></div>
+      <button id="btnSettingsInline" style="margin-top:10px; background:none; border:none; padding:0; cursor:pointer; font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); text-decoration:underline;">
+        <span data-lang="es">Activar comentarios con IA (clave Groq)</span><span data-lang="en">Turn on AI comments (Groq key)</span>
+      </button>
     </div>
 
     <div class="box">
@@ -582,6 +585,10 @@
   });
 
   document.getElementById('btnSettings').addEventListener('click', ()=>{
+    document.getElementById('apiKeyInput').value = localStorage.getItem(API_KEY) || '';
+    document.getElementById('settingsModal').classList.add('open');
+  });
+  document.getElementById('btnSettingsInline').addEventListener('click', ()=>{
     document.getElementById('apiKeyInput').value = localStorage.getItem(API_KEY) || '';
     document.getElementById('settingsModal').classList.add('open');
   });
